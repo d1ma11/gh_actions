@@ -45,6 +45,19 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
+        id: tests
+        continue-on-error: true
         run: |
           source venv/bin/activate
           pytest
+
+      - name: Send notification on failure via Telegram
+        if: steps.tests.outcome == 'failure'
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="⛔ CI STOPPED! Tests failed in ${{ github.repository }}"
+
+      - name: Fail the job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
